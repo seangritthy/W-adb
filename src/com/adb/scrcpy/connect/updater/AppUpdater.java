@@ -2,6 +2,7 @@ package com.adb.scrcpy.connect.updater;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -16,11 +17,22 @@ import java.util.Scanner;
 
 public class AppUpdater {
     private static final String GITHUB_RELEASE_URL = "https://api.github.com/repos/seangritthy/W-adb/releases/latest";
+    private static final String DEFAULT_FALLBACK_APK_URL = "https://raw.githubusercontent.com/seangritthy/vdomov-apks/main/W-adb.apk";
+
     private final Context context;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public AppUpdater(Context context) {
         this.context = context;
+    }
+
+    public String getInstalledVersionName() {
+        try {
+            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            return pInfo.versionName;
+        } catch (Exception e) {
+            return "1.4.0";
+        }
     }
 
     public void checkForUpdates(final UpdateCallback callback) {
@@ -36,18 +48,21 @@ public class AppUpdater {
                     Scanner scanner = new Scanner(conn.getInputStream()).useDelimiter("\\A");
                     String response = scanner.hasNext() ? scanner.next() : "";
                     
-                    // Parse tag_name and browser_download_url
                     String latestVersion = extractJsonValue(response, "tag_name");
                     String downloadUrl = extractJsonValue(response, "browser_download_url");
 
                     if (downloadUrl.isEmpty()) {
-                        downloadUrl = "https://github.com/seangritthy/W-adb/releases/download/v1.0.1/W-adb.apk";
+                        downloadUrl = DEFAULT_FALLBACK_APK_URL;
                     }
+
+                    String currentVersion = getInstalledVersionName();
+                    boolean hasUpdate = latestVersion != null && !latestVersion.isEmpty() && !latestVersion.contains(currentVersion);
 
                     final String finalVersion = latestVersion;
                     final String finalDownloadUrl = downloadUrl;
+                    final boolean finalHasUpdate = hasUpdate;
 
-                    mainHandler.post(() -> callback.onUpdateCheckResult(true, finalVersion, finalDownloadUrl));
+                    mainHandler.post(() -> callback.onUpdateCheckResult(finalHasUpdate, finalVersion, finalDownloadUrl));
                 } else {
                     mainHandler.post(() -> callback.onUpdateCheckResult(false, null, null));
                 }

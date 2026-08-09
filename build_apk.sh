@@ -6,7 +6,8 @@ cd "$APP_DIR"
 
 echo "=== Building W-adb APK ==="
 
-# 1. Create build directories
+# 1. Clean previous build output & create build directories
+rm -rf build/
 mkdir -p build/gen build/obj build/bin libs
 
 # 2. Check for android.jar
@@ -34,23 +35,24 @@ javac -d build/obj \
 echo "[4/7] Converting bytecode to DEX..."
 d8 --output build/bin --classpath libs/android.jar $(find build/obj -name "*.class")
 
-# 6. Package unaligned APK with AAPT including assets
+# 6. Package unaligned APK with AAPT including assets & DEX
 echo "[5/7] Packaging unaligned APK..."
 aapt package -f \
     -M AndroidManifest.xml \
     -S res \
     -A assets \
     -I libs/android.jar \
-    -F build/bin/app-unaligned.apk \
-    build/bin
+    -F build/bin/app-unaligned.apk
+
+(cd build/bin && aapt add app-unaligned.apk classes.dex)
 
 # 7. ZipAlign alignment (4-byte alignment mandatory for Android installation)
 echo "[6/7] Aligning APK with zipalign..."
 zipalign -f -v 4 build/bin/app-unaligned.apk build/bin/app-aligned.apk
 
-# 8. Generate debug key and sign APK
+# 8. Generate debug key if missing and sign APK
 if [ ! -f debug.keystore ]; then
-    echo "Generating debug keystore..."
+    echo "Generating persistent debug keystore..."
     keytool -genkey -v \
         -keystore debug.keystore \
         -storepass android \

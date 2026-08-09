@@ -1,28 +1,16 @@
 # W-adb Release Notes & Release History
 
-## Latest Release: v1.3.1
-- **Version Alignment**: Updated `versionName` to `1.3.1` and bumped `versionCode` to `10301` to align Android App Info settings with GitHub Release versioning.
-- **System Settings Compatibility**: Guaranteed that Android System -> App Info displays version `1.3.1`.
+## Latest Release: v1.5.0
+- **Consistent Debug Keystore Signing**: Fixed persistent APK signing key so Android package manager seamlessly updates installed 1.0.1 APKs without signature mismatch errors.
+- **UI Version Header Badge**: Added live version badge `v1.5.0 (10500)` inside the app header bar.
+- **Version Bump**: `versionCode 10500`, `versionName 1.5.0`.
 
 ---
 
-## v1.2.0
-- **Built-in Mobile Hotspot Auto-Pairing (`HotspotPairingManager`)**: Added **AUTO-PAIR HOTSPOT DEVICE** scanner that automatically detects connected Mobile Hotspot clients/gateway IPs and open Wireless ADB ports without needing manual IP typing!
-- **Wi-Fi Subnet Scanner**: Auto-scans `/proc/net/arp` and Wi-Fi gateway interfaces for zero-configuration device pairing.
+## v1.4.1
+- **Removed Hardcoded Fallback Version**: Fixed `AppUpdater.java` to dynamically check runtime `PackageManager` version info.
 
 ---
 
-## v1.1.1
-- **ADB Auth Handshake & Socket Fix**: Added null-terminated system identity string (`host::W-adb\0`) per ADB protocol spec.
-- **Screen Popup Prompting**: Improved authentication flow so target device displays "Allow Wireless Debugging?" RSA key prompt.
-
----
-
-## v1.1.0
-- **Local Loopback Mode (Phone-to-Self LADB Mode)**: Connect to `127.0.0.1` locally via Android Wireless Debugging directly on your phone without needing a PC or root!
-- **Interactive ADB Shell Console**: Added ADB Shell tab (`💻 ADB Shell`) for running commands (`pm list packages`, `setprop`, `wm density`, `dumpsys`, etc.) directly on local or remote devices.
-
----
-
-## v1.0.1
-- **Auto-Updater & System Package Installer**: Added `AppUpdater` module that checks GitHub releases, downloads update `.apk` assets, and triggers Android System Package Installer.
+## v1.4.0
+- **Direct Wi-Fi Screen Share Mode (NO ADB / NO Wireless Debugging Needed!)**: Added `ScreenSenderServer` (`MediaProjection`) and `ScreenReceiverClient` to view live screens over local Wi-Fi / Mobile Hotspot without Wireless Debugging or a PC!

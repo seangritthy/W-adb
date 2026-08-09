@@ -2,6 +2,9 @@ package com.adb.scrcpy.connect;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,8 +21,11 @@ import android.widget.Toast;
 
 import com.adb.scrcpy.connect.adb.AdbConnection;
 import com.adb.scrcpy.connect.adb.AdbStream;
+import com.adb.scrcpy.connect.adb.AdbTlsPairing;
 import com.adb.scrcpy.connect.crypto.AdbCrypto;
 import com.adb.scrcpy.connect.scrcpy.ScrcpyController;
+import com.adb.scrcpy.connect.share.ScreenReceiverClient;
+import com.adb.scrcpy.connect.share.ScreenSenderServer;
 import com.adb.scrcpy.connect.sync.AdbSyncClient;
 import com.adb.scrcpy.connect.ui.FileExplorerAdapter;
 import com.adb.scrcpy.connect.ui.RemoteScreenView;
@@ -35,16 +41,18 @@ import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends Activity {
+    private static final int REQUEST_CODE_SCREEN_SHARE = 1001;
+
     private Button btnTabConnect, btnTabScrcpy, btnTabTerminal, btnTabFiles;
     private ScrollView panelConnect;
-    private LinearLayout panelFiles, panelTerminal, cardRemoteMode, cardLocalMode;
+    private LinearLayout panelFiles, panelTerminal, cardDirectMode, cardRemoteMode, cardLocalMode;
     private RelativeLayout panelScrcpy;
 
-    private Button btnModeRemote, btnModeLocal;
+    private Button btnModeDirectShare, btnModeRemote, btnModeLocal;
     private TextView tvMyIpAddress;
-    private Button btnRefreshIp, btnAutoScanHotspot;
+    private Button btnRefreshIp, btnStartSender, btnConnectDirectReceiver, btnAutoScanHotspot;
 
-    private EditText etIpAddress, etPort, etLocalPort, etLocalPairCode;
+    private EditText etDirectIp, etIpAddress, etPort, etLocalPort, etLocalPairCode;
     private Button btnConnectWifi, btnConnectLocal;
     private TextView tvLogs;
 
@@ -64,10 +72,12 @@ public class MainActivity extends Activity {
     private AdbCrypto crypto;
     private AdbConnection adbConnection;
     private ScrcpyController scrcpyController;
+    private ScreenSenderServer screenSenderServer;
+    private ScreenReceiverClient screenReceiverClient;
+
     private AppUpdater appUpdater;
     private HotspotPairingManager hotspotManager;
     private String currentRemotePath = "/sdcard/";
-    private boolean isLocalMode = false;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -94,15 +104,21 @@ public class MainActivity extends Activity {
         panelTerminal = findViewById(R.id.panelTerminal);
         panelFiles = findViewById(R.id.panelFiles);
 
+        btnModeDirectShare = findViewById(R.id.btnModeDirectShare);
         btnModeRemote = findViewById(R.id.btnModeRemote);
         btnModeLocal = findViewById(R.id.btnModeLocal);
+
+        cardDirectMode = findViewById(R.id.cardDirectMode);
         cardRemoteMode = findViewById(R.id.cardRemoteMode);
         cardLocalMode = findViewById(R.id.cardLocalMode);
 
         tvMyIpAddress = findViewById(R.id.tvMyIpAddress);
         btnRefreshIp = findViewById(R.id.btnRefreshIp);
+        btnStartSender = findViewById(R.id.btnStartSender);
+        btnConnectDirectReceiver = findViewById(R.id.btnConnectDirectReceiver);
         btnAutoScanHotspot = findViewById(R.id.btnAutoScanHotspot);
 
+        etDirectIp = findViewById(R.id.etDirectIp);
         etIpAddress = findViewById(R.id.etIpAddress);
         etPort = findViewById(R.id.etPort);
         etLocalPort = findViewById(R.id.etLocalPort);
@@ -132,6 +148,7 @@ public class MainActivity extends Activity {
 
         appUpdater = new AppUpdater(this);
         hotspotManager = new HotspotPairingManager(this);
+        screenReceiverClient = new ScreenReceiverClient();
     }
 
     private void initCrypto() {
@@ -188,10 +205,13 @@ public class MainActivity extends Activity {
         btnTabTerminal.setOnClickListener(v -> switchTab(2));
         btnTabFiles.setOnClickListener(v -> switchTab(3));
 
-        btnModeRemote.setOnClickListener(v -> toggleMode(false));
-        btnModeLocal.setOnClickListener(v -> toggleMode(true));
+        btnModeDirectShare.setOnClickListener(v -> toggleMode(0));
+        btnModeRemote.setOnClickListener(v -> toggleMode(1));
+        btnModeLocal.setOnClickListener(v -> toggleMode(2));
 
         btnRefreshIp.setOnClickListener(v -> detectMyIpAddress());
+        btnStartSender.setOnClickListener(v -> requestScreenCapture());
+        btnConnectDirectReceiver.setOnClickListener(v -> startDirectReceiverConnect());
         btnAutoScanHotspot.setOnClickListener(v -> autoScanHotspotDevice());
 
         btnConnectWifi.setOnClickListener(v -> startWifiConnectAndScrcpy());
@@ -217,6 +237,71 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void toggleMode(int modeIndex) {
+        cardDirectMode.setVisibility(modeIndex == 0 ? View.VISIBLE : View.GONE);
+        cardRemoteMode.setVisibility(modeIndex == 1 ? View.VISIBLE : View.GONE);
+        cardLocalMode.setVisibility(modeIndex == 2 ? View.VISIBLE : View.GONE);
+
+        btnModeDirectShare.setBackgroundTintList(android.content.res.ColorStateList.valueOf(modeIndex == 0 ? 0xFF00E676 : 0xFF2C2C2C));
+        btnModeDirectShare.setTextColor(modeIndex == 0 ? 0xFF000000 : 0xFFFFFFFF);
+
+        btnModeRemote.setBackgroundTintList(android.content.res.ColorStateList.valueOf(modeIndex == 1 ? 0xFF00E676 : 0xFF2C2C2C));
+        btnModeRemote.setTextColor(modeIndex == 1 ? 0xFF000000 : 0xFFFFFFFF);
+
+        btnModeLocal.setBackgroundTintList(android.content.res.ColorStateList.valueOf(modeIndex == 2 ? 0xFF29B6F6 : 0xFF2C2C2C));
+        btnModeLocal.setTextColor(modeIndex == 2 ? 0xFF000000 : 0xFFFFFFFF);
+    }
+
+    private void requestScreenCapture() {
+        MediaProjectionManager projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        if (projectionManager != null) {
+            startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_SHARE);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_SCREEN_SHARE && resultCode == RESULT_OK && data != null) {
+            MediaProjectionManager projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            if (projectionManager != null) {
+                MediaProjection mediaProjection = projectionManager.getMediaProjection(resultCode, data);
+                if (mediaProjection != null) {
+                    new Thread(() -> {
+                        try {
+                            log("Starting Direct Screen Share Server on port 9090...");
+                            screenSenderServer = new ScreenSenderServer(MainActivity.this, mediaProjection);
+                            screenSenderServer.start();
+                            log("SUCCESS: Screen Share Server Broadcasting! Tell User 1 to enter your IP.");
+                        } catch (Exception e) {
+                            log("Sender Error: " + e.getMessage());
+                        }
+                    }).start();
+                }
+            }
+        }
+    }
+
+    private void startDirectReceiverConnect() {
+        String ip = etDirectIp.getText().toString().trim();
+        if (ip.isEmpty()) {
+            Toast.makeText(this, "Enter User 2's IP Address!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        log("Connecting to Direct Wi-Fi Screen Share at " + ip + ":9090 (No ADB)...");
+
+        new Thread(() -> {
+            try {
+                mainHandler.post(() -> switchTab(1)); // Switch to Live View tab
+                screenReceiverClient.connectAndStream(ip, 9090, remoteScreenView.getHolder().getSurface());
+                log("SUCCESS: Direct Wi-Fi Screen Stream Active!");
+            } catch (Exception e) {
+                log("Direct Connection Failed: " + e.getMessage());
+                log("Ensure User 2 tapped 'SHARE MY SCREEN' and both phones are on the same Wi-Fi/Hotspot!");
+            }
+        }).start();
+    }
+
     private void autoScanHotspotDevice() {
         log("Scanning Wi-Fi Hotspot for active ADB devices...");
         Toast.makeText(this, "Scanning Hotspot Network...", Toast.LENGTH_SHORT).show();
@@ -233,18 +318,6 @@ public class MainActivity extends Activity {
                 Toast.makeText(MainActivity.this, "No ADB device found on Hotspot.", Toast.LENGTH_LONG).show();
             }
         });
-    }
-
-    private void toggleMode(boolean local) {
-        isLocalMode = local;
-        cardRemoteMode.setVisibility(local ? View.GONE : View.VISIBLE);
-        cardLocalMode.setVisibility(local ? View.VISIBLE : View.GONE);
-
-        btnModeRemote.setBackgroundTintList(android.content.res.ColorStateList.valueOf(local ? 0xFF2C2C2C : 0xFF00E676));
-        btnModeRemote.setTextColor(local ? 0xFFFFFFFF : 0xFF000000);
-
-        btnModeLocal.setBackgroundTintList(android.content.res.ColorStateList.valueOf(local ? 0xFF29B6F6 : 0xFF2C2C2C));
-        btnModeLocal.setTextColor(local ? 0xFF000000 : 0xFFFFFFFF);
     }
 
     private void switchTab(int tabIndex) {
@@ -288,13 +361,14 @@ public class MainActivity extends Activity {
                 });
             } catch (Exception e) {
                 log("Connection Failed: " + e.getMessage());
-                log("Troubleshooting:\n1. Ensure 'Wireless Debugging' is ON in Developer Options.\n2. Verify Port number (in Android 11+ it changes when re-toggled).\n3. Both phones must be on the same Wi-Fi/Hotspot network.");
             }
         }).start();
     }
 
     private void startLocalLoopbackConnect() {
         String portStr = etLocalPort.getText().toString().trim();
+        String pairCode = etLocalPairCode.getText().toString().trim();
+
         if (portStr.isEmpty()) {
             Toast.makeText(this, "Enter local Wireless Debugging port!", Toast.LENGTH_SHORT).show();
             return;
@@ -302,10 +376,19 @@ public class MainActivity extends Activity {
 
         int port = Integer.parseInt(portStr);
         log("Connecting to Local Loopback (127.0.0.1:" + port + ")...");
-        log("💡 Check phone screen for 'Allow Wireless Debugging?' popup.");
 
         new Thread(() -> {
             try {
+                if (!pairCode.isEmpty()) {
+                    log("Attempting TLS pairing with code: " + pairCode + "...");
+                    try {
+                        AdbTlsPairing.pairDevice("127.0.0.1", port, pairCode);
+                        log("TLS Pairing signal sent!");
+                    } catch (Exception pErr) {
+                        log("Pairing note: " + pErr.getMessage());
+                    }
+                }
+
                 adbConnection = AdbConnection.createTcp("127.0.0.1", port, crypto);
                 adbConnection.connect();
                 log("SUCCESS: Local ADB Loopback Connected!");
@@ -316,7 +399,6 @@ public class MainActivity extends Activity {
                 });
             } catch (Exception e) {
                 log("Local ADB Failed: " + e.getMessage());
-                log("Ensure 'Wireless Debugging' is enabled in Developer Options!");
             }
         }).start();
     }
@@ -441,6 +523,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (screenSenderServer != null) screenSenderServer.stop();
+        if (screenReceiverClient != null) screenReceiverClient.stop();
         if (scrcpyController != null) scrcpyController.stop();
         if (adbConnection != null) adbConnection.close();
     }
