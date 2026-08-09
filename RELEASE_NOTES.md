@@ -1,11 +1,13 @@
-# AdbScrcpyConnect v1.0.0 Release Notes
+# W-adb Release Notes & Release History
 
-## Features Included
-- **Wireless ADB & USB OTG**: Auto-detects local Wi-Fi / Hotspot IP addresses and connects via TCP/IP or Android UsbManager bulk endpoints.
-- **Scrcpy v2.4 Remote Control**: Pushes embedded `scrcpy-server-v2.4.jar`, decodes H.264 video with low latency via `MediaCodec`, and injects real-time touch & navigation key events (Home, Back, Recents).
-- **ADB SYNC High-Speed File Manager**: Browse remote `/sdcard/` directories, upload files, download files, and manage storage between Android devices.
-- **User 1 & User 2 Workflow UI**: Built-in guidance for User 2 (Target Phone) and User 1 (Scrcpy Viewer Phone).
+## Latest Release: v1.0.1
+- **Auto-Updater & System Package Installer**: Added `AppUpdater` module that checks GitHub releases, downloads update `.apk` assets, and triggers Android System Package Installer (`REQUEST_INSTALL_PACKAGES` permission).
+- **Custom ContentProvider (`AppFileProvider`)**: Clean Android ContentProvider implementation for sharing download APK URIs securely with Android Package Installer.
+- **Version Bump**: `versionCode 2`, `versionName 1.0.1`.
 
-## Build Verification
-- Signed with Android Debug RSA key pair (v1, v2, v3 schemes).
-- Tested and verified on Termux JVM runtime environment.
+---
+
+## v1.0.0
+- **Wireless ADB & Scrcpy v2.4 Remote Display**: Instant Wi-Fi pair & connect for User 1 (Viewer) and User 2 (Target Phone).
+- **Interactive Touch & Navigation Controls**: Hardware H.264 video decoding with Android `MediaCodec` + touch event injection.
+- **ADB SYNC File Manager**: Remote directory listing, file upload, and file download over ADB channels.

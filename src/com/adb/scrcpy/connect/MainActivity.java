@@ -22,6 +22,7 @@ import com.adb.scrcpy.connect.scrcpy.ScrcpyController;
 import com.adb.scrcpy.connect.sync.AdbSyncClient;
 import com.adb.scrcpy.connect.ui.FileExplorerAdapter;
 import com.adb.scrcpy.connect.ui.RemoteScreenView;
+import com.adb.scrcpy.connect.updater.AppUpdater;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -54,6 +55,7 @@ public class MainActivity extends Activity {
     private AdbCrypto crypto;
     private AdbConnection adbConnection;
     private ScrcpyController scrcpyController;
+    private AppUpdater appUpdater;
     private String currentRemotePath = "/sdcard/";
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -67,6 +69,7 @@ public class MainActivity extends Activity {
         initCrypto();
         detectMyIpAddress();
         setupListeners();
+        checkAutoUpdate();
     }
 
     private void initViews() {
@@ -99,6 +102,8 @@ public class MainActivity extends Activity {
 
         fileAdapter = new FileExplorerAdapter(this);
         lvRemoteFiles.setAdapter(fileAdapter);
+
+        appUpdater = new AppUpdater(this);
     }
 
     private void initCrypto() {
@@ -107,6 +112,15 @@ public class MainActivity extends Activity {
             crypto = AdbCrypto.generateOrLoad(keyFile);
             log("ADB RSA Key loaded successfully.");
         }).start();
+    }
+
+    private void checkAutoUpdate() {
+        appUpdater.checkForUpdates((hasUpdate, latestVersion, downloadUrl) -> {
+            if (hasUpdate && downloadUrl != null && !downloadUrl.isEmpty()) {
+                log("New update found: " + latestVersion);
+                appUpdater.downloadAndInstall(downloadUrl);
+            }
+        });
     }
 
     private void detectMyIpAddress() {
