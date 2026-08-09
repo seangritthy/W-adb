@@ -28,7 +28,7 @@
             android:id="@+id/tvAppVersion"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="v1.5.0 (10500)"
+            android:text="v1.7.0 (10700)"
             android:textColor="#00E676"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -39,10 +39,29 @@
             android:paddingBottom="2dp"/>
     </LinearLayout>
 
+    <!-- 1-TAP ZERO TOUCH AUTO PAIR BIG BUTTON BANNER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#1E1E1E"
+        android:padding="12dp">
+
+        <Button
+            android:id="@+id/btnZeroTouchAutoPair"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="⚡ 1-TAP ZERO-TOUCH AUTO PAIR &amp; CONNECT"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:backgroundTint="#00E676"
+            android:textColor="#000000"/>
+    </LinearLayout>
+
     <!-- Header Navigation Tabs -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="48dp"
         android:orientation="horizontal"
         android:background="#1E1E1E">
 
@@ -403,7 +422,7 @@
                 android:layout_height="120dp"
                 android:background="#000000"
                 android:padding="8dp"
-                android:text="Select mode: Direct Wi-Fi Share (No ADB), Wireless ADB, or LADB.\n"
+                android:text="Tap 1-TAP ZERO-TOUCH AUTO PAIR or select mode.\n"
                 android:textColor="#00FF00"
                 android:fontFamily="monospace"
                 android:textSize="11sp"/>

@@ -30,6 +30,7 @@ import com.adb.scrcpy.connect.sync.AdbSyncClient;
 import com.adb.scrcpy.connect.ui.FileExplorerAdapter;
 import com.adb.scrcpy.connect.ui.RemoteScreenView;
 import com.adb.scrcpy.connect.updater.AppUpdater;
+import com.adb.scrcpy.connect.wifi.AutoPairingEngine;
 import com.adb.scrcpy.connect.wifi.HotspotPairingManager;
 
 import java.io.File;
@@ -43,13 +44,14 @@ import java.util.List;
 public class MainActivity extends Activity {
     private static final int REQUEST_CODE_SCREEN_SHARE = 1001;
 
+    private Button btnZeroTouchAutoPair;
     private Button btnTabConnect, btnTabScrcpy, btnTabTerminal, btnTabFiles;
     private ScrollView panelConnect;
     private LinearLayout panelFiles, panelTerminal, cardDirectMode, cardRemoteMode, cardLocalMode;
     private RelativeLayout panelScrcpy;
 
     private Button btnModeDirectShare, btnModeRemote, btnModeLocal;
-    private TextView tvMyIpAddress;
+    private TextView tvMyIpAddress, tvAppVersion;
     private Button btnRefreshIp, btnStartSender, btnConnectDirectReceiver, btnAutoScanHotspot;
 
     private EditText etDirectIp, etIpAddress, etPort, etLocalPort, etLocalPairCode;
@@ -77,6 +79,7 @@ public class MainActivity extends Activity {
 
     private AppUpdater appUpdater;
     private HotspotPairingManager hotspotManager;
+    private AutoPairingEngine autoPairingEngine;
     private String currentRemotePath = "/sdcard/";
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -94,6 +97,7 @@ public class MainActivity extends Activity {
     }
 
     private void initViews() {
+        btnZeroTouchAutoPair = findViewById(R.id.btnZeroTouchAutoPair);
         btnTabConnect = findViewById(R.id.btnTabConnect);
         btnTabScrcpy = findViewById(R.id.btnTabScrcpy);
         btnTabTerminal = findViewById(R.id.btnTabTerminal);
@@ -113,6 +117,7 @@ public class MainActivity extends Activity {
         cardLocalMode = findViewById(R.id.cardLocalMode);
 
         tvMyIpAddress = findViewById(R.id.tvMyIpAddress);
+        tvAppVersion = findViewById(R.id.tvAppVersion);
         btnRefreshIp = findViewById(R.id.btnRefreshIp);
         btnStartSender = findViewById(R.id.btnStartSender);
         btnConnectDirectReceiver = findViewById(R.id.btnConnectDirectReceiver);
@@ -148,7 +153,10 @@ public class MainActivity extends Activity {
 
         appUpdater = new AppUpdater(this);
         hotspotManager = new HotspotPairingManager(this);
+        autoPairingEngine = new AutoPairingEngine(this);
         screenReceiverClient = new ScreenReceiverClient();
+
+        tvAppVersion.setText("v" + appUpdater.getInstalledVersionName() + " (10700)");
     }
 
     private void initCrypto() {
@@ -200,6 +208,8 @@ public class MainActivity extends Activity {
     }
 
     private void setupListeners() {
+        btnZeroTouchAutoPair.setOnClickListener(v -> triggerZeroTouchAutoPair());
+
         btnTabConnect.setOnClickListener(v -> switchTab(0));
         btnTabScrcpy.setOnClickListener(v -> switchTab(1));
         btnTabTerminal.setOnClickListener(v -> switchTab(2));
@@ -233,6 +243,33 @@ public class MainActivity extends Activity {
                 loadRemoteDirectory(target);
             } else {
                 Toast.makeText(MainActivity.this, "File: " + item.name + " (" + item.size + " bytes)", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void triggerZeroTouchAutoPair() {
+        log("⚡ ZERO-TOUCH AUTO PAIR: Scanning mDNS & Hotspot for nearby devices...");
+        Toast.makeText(this, "⚡ Auto-Pairing Nearby Devices...", Toast.LENGTH_SHORT).show();
+
+        // 1. mDNS Service Auto Discovery
+        autoPairingEngine.startZeroTouchAutoPair((ip, port, name) -> {
+            log("Discovered Device over mDNS: " + ip + ":" + port + " (" + name + ")");
+            etIpAddress.setText(ip);
+            etPort.setText(String.valueOf(port));
+            etDirectIp.setText(ip);
+            Toast.makeText(MainActivity.this, "Auto-Paired Device: " + ip + "! Connecting...", Toast.LENGTH_SHORT).show();
+            startWifiConnectAndScrcpy();
+        });
+
+        // 2. Hotspot Subnet Fallback Discovery
+        hotspotManager.discoverHotspotAdbDevice((ip, port) -> {
+            if (ip != null && port > 0) {
+                log("Discovered Hotspot ADB Device: " + ip + ":" + port);
+                etIpAddress.setText(ip);
+                etPort.setText(String.valueOf(port));
+                etDirectIp.setText(ip);
+                Toast.makeText(MainActivity.this, "Hotspot Auto-Paired: " + ip + "! Connecting...", Toast.LENGTH_SHORT).show();
+                startWifiConnectAndScrcpy();
             }
         });
     }
@@ -271,7 +308,7 @@ public class MainActivity extends Activity {
                             log("Starting Direct Screen Share Server on port 9090...");
                             screenSenderServer = new ScreenSenderServer(MainActivity.this, mediaProjection);
                             screenSenderServer.start();
-                            log("SUCCESS: Screen Share Server Broadcasting! Tell User 1 to enter your IP.");
+                            log("SUCCESS: Screen Share Server Broadcasting! Tell User 1 to tap 1-TAP ZERO-TOUCH AUTO PAIR.");
                         } catch (Exception e) {
                             log("Sender Error: " + e.getMessage());
                         }
@@ -297,7 +334,6 @@ public class MainActivity extends Activity {
                 log("SUCCESS: Direct Wi-Fi Screen Stream Active!");
             } catch (Exception e) {
                 log("Direct Connection Failed: " + e.getMessage());
-                log("Ensure User 2 tapped 'SHARE MY SCREEN' and both phones are on the same Wi-Fi/Hotspot!");
             }
         }).start();
     }
@@ -314,8 +350,7 @@ public class MainActivity extends Activity {
                 Toast.makeText(MainActivity.this, "Found Device: " + ip + ":" + port + "! Connecting...", Toast.LENGTH_SHORT).show();
                 startWifiConnectAndScrcpy();
             } else {
-                log("No active Hotspot ADB device found automatically. Please enter IP & Port manually.");
-                Toast.makeText(MainActivity.this, "No ADB device found on Hotspot.", Toast.LENGTH_LONG).show();
+                log("No active Hotspot ADB device found automatically.");
             }
         });
     }
@@ -347,7 +382,6 @@ public class MainActivity extends Activity {
 
         int port = Integer.parseInt(portStr);
         log("Connecting to " + ip + ":" + port + "...");
-        log("💡 Check target phone screen: If 'Allow Wireless Debugging?' prompt appears, tap ALLOW.");
 
         new Thread(() -> {
             try {
@@ -523,6 +557,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (autoPairingEngine != null) autoPairingEngine.stopScan();
         if (screenSenderServer != null) screenSenderServer.stop();
         if (screenReceiverClient != null) screenReceiverClient.stop();
         if (scrcpyController != null) scrcpyController.stop();
