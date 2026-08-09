@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#121212">
+
+    <!-- Header Navigation Tabs -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:background="#1E1E1E">
+
+        <Button
+            android:id="@+id/btnTabConnect"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="📡 Connection &amp; Pair"
+            android:textColor="#00E676"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <Button
+            android:id="@+id/btnTabScrcpy"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="📱 Scrcpy View"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <Button
+            android:id="@+id/btnTabTerminal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="💻 ADB Shell"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <Button
+            android:id="@+id/btnTabFiles"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="📁 File Share"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+    </LinearLayout>
+
+    <!-- Tab 1: Connection Mode Selection -->
+    <ScrollView
+        android:id="@+id/panelConnect"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Mode Selector Switcher -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="#1E1E1E"
+                android:padding="4dp"
+                android:layout_marginBottom="16dp">
+
+                <Button
+                    android:id="@+id/btnModeRemote"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Phone-to-Phone (Scrcpy)"
+                    android:backgroundTint="#00E676"
+                    android:textColor="#000000"
+                    android:textSize="12sp"/>
+
+                <Button
+                    android:id="@+id/btnModeLocal"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Local Loopback (LADB)"
+                    android:backgroundTint="#2C2C2C"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+
+            <!-- Card: Remote Phone-to-Phone Mode -->
+            <LinearLayout
+                android:id="@+id/cardRemoteMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#1E1E1E"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"
+                android:visibility="visible">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📱 Phone-to-Phone Wireless ADB &amp; Scrcpy"
+                    android:textColor="#00E676"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <!-- IP Info -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#2C2C2C"
+                    android:padding="8dp"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="My Wi-Fi/Hotspot IP: "
+                        android:textColor="#888888"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/tvMyIpAddress"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Detecting..."
+                        android:textColor="#00E676"
+                        android:textStyle="bold"/>
+
+                    <Button
+                        android:id="@+id/btnRefreshIp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="Refresh"
+                        android:textSize="10sp"
+                        android:backgroundTint="#333333"
+                        android:textColor="#FFFFFF"/>
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnAutoScanHotspot"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="🔍 AUTO-PAIR HOTSPOT DEVICE"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#29B6F6"
+                    android:textColor="#000000"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Or manually enter User 2 Target IP &amp; Wireless Debugging Port:"
+                    android:textColor="#CCCCCC"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <EditText
+                        android:id="@+id/etIpAddress"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="3"
+                        android:hint="Target IP (e.g. 192.168.43.1)"
+                        android:text="192.168.43.1"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#888888"
+                        android:background="#2C2C2C"
+                        android:padding="12dp"/>
+
+                    <EditText
+                        android:id="@+id/etPort"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Port"
+                        android:text="5555"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#888888"
+                        android:background="#2C2C2C"
+                        android:padding="12dp"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnConnectWifi"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:text="⚡ CONNECT &amp; LAUNCH SCRCPY VIEW"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#00E676"
+                    android:textColor="#000000"/>
+            </LinearLayout>
+
+            <!-- Card: Local Loopback Mode (LADB Phone-to-Self) -->
+            <LinearLayout
+                android:id="@+id/cardLocalMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#1E1E1E"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💻 Local Loopback Mode (Phone-to-Self)"
+                    android:textColor="#29B6F6"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Run ADB shell commands on this phone without a PC.\nEnable Wireless Debugging in Developer Options -> Pair Device."
+                    android:textColor="#CCCCCC"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="12dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <EditText
+                        android:id="@+id/etLocalPort"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Wireless Port (e.g. 37012)"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#888888"
+                        android:background="#2C2C2C"
+                        android:padding="12dp"/>
+
+                    <EditText
+                        android:id="@+id/etLocalPairCode"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Pair Code (6 digits)"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#888888"
+                        android:background="#2C2C2C"
+                        android:padding="12dp"
+                        android:layout_marginStart="8dp"/>
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnConnectLocal"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:text="🔌 CONNECT LOCAL ADB SHELL (127.0.0.1)"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#29B6F6"
+                    android:textColor="#000000"/>
+            </LinearLayout>
+
+            <!-- Logs View -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Connection &amp; System Logs"
+                android:textColor="#888888"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/tvLogs"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:background="#000000"
+                android:padding="8dp"
+                android:text="Select mode: Phone-to-Phone (Remote) or Local Loopback (127.0.0.1).\n"
+                android:textColor="#00FF00"
+                android:fontFamily="monospace"
+                android:textSize="11sp"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Tab 2: Scrcpy Display & Control -->
+    <RelativeLayout
+        android:id="@+id/panelScrcpy"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/barControl"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_alignParentBottom="true"
+            android:background="#1E1E1E"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnKeyBack"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="◀ BACK"
+                android:textColor="#FFFFFF"
+                android:background="?android:attr/selectableItemBackground"/>
+
+            <Button
+                android:id="@+id/btnKeyHome"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="● HOME"
+                android:textColor="#FFFFFF"
+                android:background="?android:attr/selectableItemBackground"/>
+
+            <Button
+                android:id="@+id/btnKeyRecents"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="■ RECENTS"
+                android:textColor="#FFFFFF"
+                android:background="?android:attr/selectableItemBackground"/>
+        </LinearLayout>
+
+        <com.adb.scrcpy.connect.ui.RemoteScreenView
+            android:id="@+id/remoteScreenView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@id/barControl"/>
+    </RelativeLayout>
+
+    <!-- Tab 3: Local / Remote ADB Shell Terminal -->
+    <LinearLayout
+        android:id="@+id/panelTerminal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💻 ADB Interactive Shell Console"
+            android:textColor="#00E676"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <ScrollView
+            android:id="@+id/scrollTerminal"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#000000"
+            android:padding="8dp"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/tvTerminalOutput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ADB Shell Console Output:\n"
+                android:textColor="#00FF00"
+                android:fontFamily="monospace"
+                android:textSize="12sp"/>
+        </ScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etShellCommand"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Enter shell command (e.g. pm list packages)"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
+                android:background="#2C2C2C"
+                android:padding="12dp"/>
+
+            <Button
+                android:id="@+id/btnSendShell"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Send"
+                android:backgroundTint="#00E676"
+                android:textColor="#000000"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Tab 4: File Explorer Share -->
+    <LinearLayout
+        android:id="@+id/panelFiles"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/btnFileUp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⬆ Up"
+                android:backgroundTint="#29B6F6"
+                android:textColor="#000000"/>
+
+            <TextView
+                android:id="@+id/tvCurrentPath"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="/sdcard/"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="8dp"/>
+
+            <Button
+                android:id="@+id/btnPushFile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Upload File"
+                android:backgroundTint="#00E676"
+                android:textColor="#000000"/>
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/lvRemoteFiles"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="#222222"
+            android:dividerHeight="1dp"/>
+    </LinearLayout>
+</LinearLayout>
