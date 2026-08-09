@@ -1,16 +1,12 @@
 # W-adb Release Notes & Release History
 
-## Latest Release: v1.5.0
-- **Consistent Debug Keystore Signing**: Fixed persistent APK signing key so Android package manager seamlessly updates installed 1.0.1 APKs without signature mismatch errors.
-- **UI Version Header Badge**: Added live version badge `v1.5.0 (10500)` inside the app header bar.
-- **Version Bump**: `versionCode 10500`, `versionName 1.5.0`.
+## Latest Release: v1.6.0
+- **Shizuku Architecture Integration (`WadbServer`)**: Added high-performance persistent `app_process` Java background server inspired by RikkaApps Shizuku architecture.
+- **Binder IPC Bridge**: Enabled persistent zero-overhead IPC communication between W-adb app and Android System Services.
+- **Version Bump**: `versionCode 10600`, `versionName 1.6.0`.
 
 ---
 
-## v1.4.1
-- **Removed Hardcoded Fallback Version**: Fixed `AppUpdater.java` to dynamically check runtime `PackageManager` version info.
-
----
-
-## v1.4.0
-- **Direct Wi-Fi Screen Share Mode (NO ADB / NO Wireless Debugging Needed!)**: Added `ScreenSenderServer` (`MediaProjection`) and `ScreenReceiverClient` to view live screens over local Wi-Fi / Mobile Hotspot without Wireless Debugging or a PC!
+## v1.5.0
+- **Consistent Debug Keystore Signing**: Fixed persistent APK signing key so Android package manager seamlessly updates installed APKs.
+- **UI Version Header Badge**: Added live version badge `v1.6.0 (10600)` inside the app header bar.
