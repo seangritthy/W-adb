@@ -22,6 +22,7 @@ import android.widget.Toast;
 import com.adb.scrcpy.connect.adb.AdbConnection;
 import com.adb.scrcpy.connect.adb.AdbStream;
 import com.adb.scrcpy.connect.adb.AdbTlsPairing;
+import com.adb.scrcpy.connect.bt.BluetoothPairingManager;
 import com.adb.scrcpy.connect.crypto.AdbCrypto;
 import com.adb.scrcpy.connect.scrcpy.ScrcpyController;
 import com.adb.scrcpy.connect.share.ScreenReceiverClient;
@@ -44,7 +45,7 @@ import java.util.List;
 public class MainActivity extends Activity {
     private static final int REQUEST_CODE_SCREEN_SHARE = 1001;
 
-    private Button btnZeroTouchAutoPair;
+    private Button btnBluetoothAutoPair, btnZeroTouchAutoPair;
     private Button btnTabConnect, btnTabScrcpy, btnTabTerminal, btnTabFiles;
     private ScrollView panelConnect;
     private LinearLayout panelFiles, panelTerminal, cardDirectMode, cardRemoteMode, cardLocalMode;
@@ -80,6 +81,7 @@ public class MainActivity extends Activity {
     private AppUpdater appUpdater;
     private HotspotPairingManager hotspotManager;
     private AutoPairingEngine autoPairingEngine;
+    private BluetoothPairingManager bluetoothPairingManager;
     private String currentRemotePath = "/sdcard/";
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -97,7 +99,9 @@ public class MainActivity extends Activity {
     }
 
     private void initViews() {
+        btnBluetoothAutoPair = findViewById(R.id.btnBluetoothAutoPair);
         btnZeroTouchAutoPair = findViewById(R.id.btnZeroTouchAutoPair);
+
         btnTabConnect = findViewById(R.id.btnTabConnect);
         btnTabScrcpy = findViewById(R.id.btnTabScrcpy);
         btnTabTerminal = findViewById(R.id.btnTabTerminal);
@@ -154,9 +158,10 @@ public class MainActivity extends Activity {
         appUpdater = new AppUpdater(this);
         hotspotManager = new HotspotPairingManager(this);
         autoPairingEngine = new AutoPairingEngine(this);
+        bluetoothPairingManager = new BluetoothPairingManager(this);
         screenReceiverClient = new ScreenReceiverClient();
 
-        tvAppVersion.setText("v" + appUpdater.getInstalledVersionName() + " (10700)");
+        tvAppVersion.setText("v" + appUpdater.getInstalledVersionName() + " (10800)");
     }
 
     private void initCrypto() {
@@ -182,6 +187,8 @@ public class MainActivity extends Activity {
             mainHandler.post(() -> {
                 if (ip != null) {
                     tvMyIpAddress.setText(ip);
+                    // Automatically broadcast my IP to nearby Bluetooth devices!
+                    bluetoothPairingManager.startBluetoothServer(ip, 9090);
                 } else {
                     tvMyIpAddress.setText("Offline / Hotspot not active");
                 }
@@ -208,6 +215,7 @@ public class MainActivity extends Activity {
     }
 
     private void setupListeners() {
+        btnBluetoothAutoPair.setOnClickListener(v -> triggerBluetoothAutoPair());
         btnZeroTouchAutoPair.setOnClickListener(v -> triggerZeroTouchAutoPair());
 
         btnTabConnect.setOnClickListener(v -> switchTab(0));
@@ -247,11 +255,29 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void triggerBluetoothAutoPair() {
+        log("🔵 Scanning Bluetooth paired devices for W-adb...");
+        Toast.makeText(this, "Scanning Bluetooth Devices...", Toast.LENGTH_SHORT).show();
+
+        bluetoothPairingManager.scanAndPairBluetoothDevice((ip, port) -> {
+            log("SUCCESS: Paired over Bluetooth! Target IP: " + ip + ":" + port);
+            etDirectIp.setText(ip);
+            etIpAddress.setText(ip);
+            etPort.setText(String.valueOf(port));
+            Toast.makeText(MainActivity.this, "Bluetooth Paired Device: " + ip + "! Connecting...", Toast.LENGTH_SHORT).show();
+
+            if (port == 9090) {
+                startDirectReceiverConnect();
+            } else {
+                startWifiConnectAndScrcpy();
+            }
+        });
+    }
+
     private void triggerZeroTouchAutoPair() {
         log("⚡ ZERO-TOUCH AUTO PAIR: Scanning mDNS & Hotspot for nearby devices...");
         Toast.makeText(this, "⚡ Auto-Pairing Nearby Devices...", Toast.LENGTH_SHORT).show();
 
-        // 1. mDNS Service Auto Discovery
         autoPairingEngine.startZeroTouchAutoPair((ip, port, name) -> {
             log("Discovered Device over mDNS: " + ip + ":" + port + " (" + name + ")");
             etIpAddress.setText(ip);
@@ -261,7 +287,6 @@ public class MainActivity extends Activity {
             startWifiConnectAndScrcpy();
         });
 
-        // 2. Hotspot Subnet Fallback Discovery
         hotspotManager.discoverHotspotAdbDevice((ip, port) -> {
             if (ip != null && port > 0) {
                 log("Discovered Hotspot ADB Device: " + ip + ":" + port);
@@ -308,7 +333,7 @@ public class MainActivity extends Activity {
                             log("Starting Direct Screen Share Server on port 9090...");
                             screenSenderServer = new ScreenSenderServer(MainActivity.this, mediaProjection);
                             screenSenderServer.start();
-                            log("SUCCESS: Screen Share Server Broadcasting! Tell User 1 to tap 1-TAP ZERO-TOUCH AUTO PAIR.");
+                            log("SUCCESS: Screen Share Server Broadcasting! Tell User 1 to tap BLUETOOTH EASY AUTO-PAIR.");
                         } catch (Exception e) {
                             log("Sender Error: " + e.getMessage());
                         }
@@ -329,7 +354,7 @@ public class MainActivity extends Activity {
 
         new Thread(() -> {
             try {
-                mainHandler.post(() -> switchTab(1)); // Switch to Live View tab
+                mainHandler.post(() -> switchTab(1));
                 screenReceiverClient.connectAndStream(ip, 9090, remoteScreenView.getHolder().getSurface());
                 log("SUCCESS: Direct Wi-Fi Screen Stream Active!");
             } catch (Exception e) {
@@ -557,6 +582,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (bluetoothPairingManager != null) bluetoothPairingManager.stop();
         if (autoPairingEngine != null) autoPairingEngine.stopScan();
         if (screenSenderServer != null) screenSenderServer.stop();
         if (screenReceiverClient != null) screenReceiverClient.stop();
