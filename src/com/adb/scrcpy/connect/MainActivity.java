@@ -31,6 +31,7 @@ import com.adb.scrcpy.connect.sync.AdbSyncClient;
 import com.adb.scrcpy.connect.ui.FileExplorerAdapter;
 import com.adb.scrcpy.connect.ui.RemoteScreenView;
 import com.adb.scrcpy.connect.updater.AppUpdater;
+import com.adb.scrcpy.connect.utils.QuickToolsController;
 import com.adb.scrcpy.connect.wifi.AutoPairingEngine;
 import com.adb.scrcpy.connect.wifi.HotspotPairingManager;
 
@@ -54,6 +55,8 @@ public class MainActivity extends Activity {
     private Button btnModeDirectShare, btnModeRemote, btnModeLocal;
     private TextView tvMyIpAddress, tvAppVersion;
     private Button btnRefreshIp, btnStartSender, btnConnectDirectReceiver, btnAutoScanHotspot;
+
+    private Button btnToolScreenshot, btnToolScreenOff, btnToolClipboard;
 
     private EditText etDirectIp, etIpAddress, etPort, etLocalPort, etLocalPairCode;
     private Button btnConnectWifi, btnConnectLocal;
@@ -127,6 +130,10 @@ public class MainActivity extends Activity {
         btnConnectDirectReceiver = findViewById(R.id.btnConnectDirectReceiver);
         btnAutoScanHotspot = findViewById(R.id.btnAutoScanHotspot);
 
+        btnToolScreenshot = findViewById(R.id.btnToolScreenshot);
+        btnToolScreenOff = findViewById(R.id.btnToolScreenOff);
+        btnToolClipboard = findViewById(R.id.btnToolClipboard);
+
         etDirectIp = findViewById(R.id.etDirectIp);
         etIpAddress = findViewById(R.id.etIpAddress);
         etPort = findViewById(R.id.etPort);
@@ -161,7 +168,7 @@ public class MainActivity extends Activity {
         bluetoothPairingManager = new BluetoothPairingManager(this);
         screenReceiverClient = new ScreenReceiverClient();
 
-        tvAppVersion.setText("v" + appUpdater.getInstalledVersionName() + " (10800)");
+        tvAppVersion.setText("v" + appUpdater.getInstalledVersionName() + " (20000)");
     }
 
     private void initCrypto() {
@@ -187,7 +194,6 @@ public class MainActivity extends Activity {
             mainHandler.post(() -> {
                 if (ip != null) {
                     tvMyIpAddress.setText(ip);
-                    // Automatically broadcast my IP to nearby Bluetooth devices!
                     bluetoothPairingManager.startBluetoothServer(ip, 9090);
                 } else {
                     tvMyIpAddress.setText("Offline / Hotspot not active");
@@ -232,6 +238,10 @@ public class MainActivity extends Activity {
         btnConnectDirectReceiver.setOnClickListener(v -> startDirectReceiverConnect());
         btnAutoScanHotspot.setOnClickListener(v -> autoScanHotspotDevice());
 
+        btnToolScreenshot.setOnClickListener(v -> captureRemoteScreenshot());
+        btnToolScreenOff.setOnClickListener(v -> turnOffRemoteScreen());
+        btnToolClipboard.setOnClickListener(v -> sendClipboardText());
+
         btnConnectWifi.setOnClickListener(v -> startWifiConnectAndScrcpy());
         btnConnectLocal.setOnClickListener(v -> startLocalLoopbackConnect());
 
@@ -253,6 +263,55 @@ public class MainActivity extends Activity {
                 Toast.makeText(MainActivity.this, "File: " + item.name + " (" + item.size + " bytes)", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void captureRemoteScreenshot() {
+        if (adbConnection == null || !adbConnection.isConnected()) {
+            Toast.makeText(this, "Connect ADB first!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                File shotFile = new File(getCacheDir(), "remote_screenshot_" + System.currentTimeMillis() + ".png");
+                QuickToolsController.takeScreenshot(adbConnection, shotFile);
+                mainHandler.post(() -> Toast.makeText(MainActivity.this, "📸 Screenshot saved to " + shotFile.getName(), Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                log("Screenshot Error: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void turnOffRemoteScreen() {
+        if (adbConnection == null || !adbConnection.isConnected()) {
+            Toast.makeText(this, "Connect ADB first!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                QuickToolsController.turnOffScreen(adbConnection);
+                mainHandler.post(() -> Toast.makeText(MainActivity.this, "💡 Screen toggled!", Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                log("Screen Off Error: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void sendClipboardText() {
+        if (adbConnection == null || !adbConnection.isConnected()) {
+            Toast.makeText(this, "Connect ADB first!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                QuickToolsController.setClipboardText(adbConnection, "Hello from W-adb!");
+                mainHandler.post(() -> Toast.makeText(MainActivity.this, "📋 Clipboard Sent!", Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                log("Clipboard Error: " + e.getMessage());
+            }
+        }).start();
     }
 
     private void triggerBluetoothAutoPair() {
@@ -454,7 +513,7 @@ public class MainActivity extends Activity {
 
                 mainHandler.post(() -> {
                     Toast.makeText(MainActivity.this, "Local ADB Shell Connected!", Toast.LENGTH_SHORT).show();
-                    switchTab(2); // Switch to ADB Shell Terminal
+                    switchTab(2);
                 });
             } catch (Exception e) {
                 log("Local ADB Failed: " + e.getMessage());
